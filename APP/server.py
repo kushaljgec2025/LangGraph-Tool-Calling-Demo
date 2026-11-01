@@ -13,15 +13,12 @@ os.chdir(APP_DIR)
 from runner import run_query_pipeline
 from loader import discover_registry_tools
 
-class LangGraphHandler(SimpleHTTPRequestHandler):
+class handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         try:
             super().__init__(*args, directory=str(APP_DIR), **kwargs)
         except TypeError:
             super().__init__(*args, **kwargs)
-
-# Vercel entrypoint requirement
-handler = LangGraphHandler
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -92,6 +89,9 @@ handler = LangGraphHandler
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps({"status": "error", "code": code, "message": message}).encode("utf-8"))
+
+# Backward-compatibility alias
+LangGraphHandler = handler
 
 def start_server(port: int = 8000, auto_open: bool = False):
     server_address = ("", port)

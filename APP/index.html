@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LangGraph Flow Visualizer | Tool Calling Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="18" cy="18" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <path d="M9 6h6a3 3 0 0 1 3 3v6"></path>
+            <path d="M6 9v6"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">LangGraph Agent Visualizer</h1>
+          <p class="app-subtitle">Interactive state transitions, tool calling & execution flow</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-model">
+          <span class="dot dot-green"></span> Gemini 3.1 Flash Lite
+        </span>
+        <span class="badge badge-tools" id="tools-badge">
+          <span class="dot dot-blue"></span> 3 Tools Loaded
+        </span>
+        <span class="badge badge-status" id="status-badge">Ready</span>
+      </div>
+    </header>
+
+    <!-- Query Input & Controls Section -->
+    <section class="query-panel">
+      <div class="query-input-wrap">
+        <label for="query-input" class="query-label">Enter Custom Query:</label>
+        <div class="input-action-row">
+          <textarea id="query-input" rows="2" placeholder="e.g. I bought 3 mechanical keyboards priced at $50 each with 10% holiday promo and 8% tax..."></textarea>
+          <button id="run-btn" class="btn btn-primary">
+            <span class="btn-text">Execute Flow</span>
+            <div class="spinner hidden" id="run-spinner"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Preset Queries -->
+      <div class="presets-row">
+        <span class="preset-label">Presets:</span>
+        <button class="preset-btn" data-query="I bought 3 mechanical keyboards priced at $50 each. I applied a 10% holiday promo code, and state sales tax is 8%. What is my final checkout total?">
+          🛒 3 Keyboards ($50 ea, 10% off, 8% tax)
+        </button>
+        <button class="preset-btn" data-query="Calculate 45 multiplied by 18 using your calculator tool.">
+          ✖️ Multiply (45 * 18)
+        </button>
+        <button class="preset-btn" data-query="An item costs $120. Apply a 15% discount. What is the discount amount and the new discounted price?">
+          🏷️ Discount ($120 with 15% off)
+        </button>
+        <button class="preset-btn" data-query="Calculate 8.5% sales tax on an invoice of $340. What is the tax amount and total?">
+          🧾 Sales Tax ($340 with 8.5%)
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Workspace: Visual Graph & State Inspector -->
+    <main class="workspace-grid">
+      
+      <!-- Graph Canvas Panel -->
+      <section class="card graph-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-tag">GRAPH</span>
+            <h2>LangGraph Topology & Live Execution</h2>
+          </div>
+          
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <button id="btn-prev" class="icon-btn" title="Previous Step" disabled>⏮</button>
+            <button id="btn-play" class="icon-btn play-btn" title="Play/Pause" disabled>▶</button>
+            <button id="btn-next" class="icon-btn" title="Next Step" disabled>⏭</button>
+            <button id="btn-reset" class="icon-btn" title="Reset Animation" disabled>🔄</button>
+            
+            <div class="speed-selector">
+              <span>Speed:</span>
+              <select id="speed-select">
+                <option value="2000">0.5x</option>
+                <option value="1200" selected>1.0x</option>
+                <option value="700">1.8x</option>
+                <option value="350">3.0x</option>
+              </select>
+            </div>
+            
+            <span class="step-indicator" id="step-indicator">Step: 0 / 0</span>
+          </div>
+        </div>
+
+        <!-- Interactive SVG Canvas -->
+        <div class="canvas-wrapper">
+          <svg id="graph-svg" viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <!-- Arrowhead markers -->
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#64748b"></path>
+              </marker>
+              <marker id="arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"></path>
+              </marker>
+              <marker id="arrow-success" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981"></path>
+              </marker>
+
+              <!-- Node Glow Filters -->
+              <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="8" result="blur"></feGaussianBlur>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"></feComposite>
+              </filter>
+              <filter id="glow-emerald" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="8" result="blur"></feGaussianBlur>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"></feComposite>
+              </filter>
+              <filter id="glow-violet" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="8" result="blur"></feGaussianBlur>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"></feComposite>
+              </filter>
+            </defs>
+
+            <!-- Graph Edges / Paths -->
+            <g id="edges-group">
+              <!-- START -> Agent -->
+              <path id="edge-START-agent" class="graph-edge" d="M 120 180 L 260 180" marker-end="url(#arrow)"></path>
+              <text x="180" y="170" class="edge-label">messages</text>
+
+              <!-- Agent -> Router -->
+              <path id="edge-agent-router" class="graph-edge" d="M 400 180 L 510 180" marker-end="url(#arrow)"></path>
+              <text x="445" y="170" class="edge-label">tool_calls?</text>
+
+              <!-- Router -> Multiply -->
+              <path id="edge-router-multiply" class="graph-edge" d="M 580 160 C 650 160, 680 80, 750 80" marker-end="url(#arrow)"></path>
+              <text x="660" y="95" class="edge-label">multiply</text>
+
+              <!-- Router -> Discount -->
+              <path id="edge-router-calculate_percentage_discount" class="graph-edge" d="M 600 180 L 750 180" marker-end="url(#arrow)"></path>
+              <text x="655" y="172" class="edge-label">discount</text>
+
+              <!-- Router -> Sales Tax -->
+              <path id="edge-router-calculate_sales_tax" class="graph-edge" d="M 580 200 C 650 200, 680 280, 750 280" marker-end="url(#arrow)"></path>
+              <text x="660" y="260" class="edge-label">sales_tax</text>
+
+              <!-- Multiply -> Agent Loopback -->
+              <path id="edge-multiply-agent" class="graph-edge edge-loopback" d="M 830 50 C 830 10, 330 10, 330 130" marker-end="url(#arrow)"></path>
+              <text x="560" y="25" class="edge-label loop-label">ToolMessage(result) ↩</text>
+
+              <!-- Discount -> Agent Loopback -->
+              <path id="edge-calculate_percentage_discount-agent" class="graph-edge edge-loopback" d="M 850 160 C 920 160, 920 30, 350 40 C 350 70, 350 100, 350 130" marker-end="url(#arrow)"></path>
+
+              <!-- Tax -> Agent Loopback -->
+              <path id="edge-calculate_sales_tax-agent" class="graph-edge edge-loopback" d="M 830 310 C 830 360, 330 360, 330 230" marker-end="url(#arrow)"></path>
+              <text x="560" y="375" class="edge-label loop-label">ToolMessage(result) ↩</text>
+
+              <!-- Router -> END -->
+              <path id="edge-agent-END" class="graph-edge edge-end" d="M 560 220 C 560 320, 560 360, 560 400" marker-end="url(#arrow)"></path>
+              <text x="575" y="320" class="edge-label">no tools (FINISH)</text>
+            </g>
+
+            <!-- Dynamic Flow Particle (moves along active path) -->
+            <circle id="flow-particle" r="6" class="flow-particle hidden"></circle>
+
+            <!-- Graph Nodes -->
+            <g id="nodes-group">
+              <!-- START Node -->
+              <g id="node-START" class="graph-node node-start" transform="translate(40, 140)">
+                <rect width="80" height="80" rx="40" class="node-shape"></rect>
+                <text x="40" y="45" class="node-title">START</text>
+                <text x="40" y="60" class="node-sub">Entry</text>
+              </g>
+
+              <!-- AGENT Node -->
+              <g id="node-agent" class="graph-node node-agent" transform="translate(260, 130)">
+                <rect width="140" height="100" rx="16" class="node-shape"></rect>
+                <text x="70" y="42" class="node-title">agent</text>
+                <text x="70" y="62" class="node-sub">LLM Reasoning</text>
+                <text x="70" y="80" class="node-badge">Gemini</text>
+              </g>
+
+              <!-- CONDITIONAL ROUTER Node -->
+              <g id="node-router" class="graph-node node-router" transform="translate(520, 145)">
+                <polygon points="40,0 80,35 40,70 0,35" class="node-shape diamond-shape"></polygon>
+                <text x="40" y="35" class="node-title router-title">should</text>
+                <text x="40" y="47" class="node-title router-title">continue?</text>
+              </g>
+
+              <!-- TOOL: Multiply -->
+              <g id="node-multiply" class="graph-node node-tool" transform="translate(750, 45)">
+                <rect width="170" height="70" rx="12" class="node-shape"></rect>
+                <text x="85" y="33" class="node-title">multiply</text>
+                <text x="85" y="52" class="node-sub">a * b (subtotal)</text>
+              </g>
+
+              <!-- TOOL: Discount -->
+              <g id="node-calculate_percentage_discount" class="graph-node node-tool" transform="translate(750, 145)">
+                <rect width="170" height="70" rx="12" class="node-shape"></rect>
+                <text x="85" y="33" class="node-title">percentage_discount</text>
+                <text x="85" y="52" class="node-sub">promo deduction</text>
+              </g>
+
+              <!-- TOOL: Sales Tax -->
+              <g id="node-calculate_sales_tax" class="graph-node node-tool" transform="translate(750, 245)">
+                <rect width="170" height="70" rx="12" class="node-shape"></rect>
+                <text x="85" y="33" class="node-title">sales_tax</text>
+                <text x="85" y="52" class="node-sub">state tax calculation</text>
+              </g>
+
+              <!-- Generic Tools Fallback -->
+              <g id="node-tools" class="graph-node node-tool hidden" transform="translate(750, 335)">
+                <rect width="170" height="50" rx="10" class="node-shape"></rect>
+                <text x="85" y="30" class="node-title">tools executor</text>
+              </g>
+
+              <!-- END Node -->
+              <g id="node-END" class="graph-node node-end" transform="translate(520, 390)">
+                <rect width="80" height="60" rx="30" class="node-shape"></rect>
+                <text x="40" y="35" class="node-title">END</text>
+                <text x="40" y="48" class="node-sub">Complete</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Step Narrative Banner -->
+        <div class="step-narrative" id="step-narrative">
+          <div class="narrative-icon" id="narrative-icon">ℹ️</div>
+          <div class="narrative-content">
+            <h4 id="narrative-title">Ready to Execute</h4>
+            <p id="narrative-desc">Enter your question or select a preset, then click "Execute Flow" to see LangGraph navigate nodes and execute tools.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- State & Data Structure Inspector Panel -->
+      <section class="card inspector-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-tag tag-cyan">INSPECTOR</span>
+            <h2>State & Data Structures</h2>
+          </div>
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="tab-structures">Node I/O</button>
+            <button class="tab-btn" data-tab="tab-state">AgentState</button>
+            <button class="tab-btn" data-tab="tab-timeline">Timeline</button>
+          </div>
+        </div>
+
+        <!-- Tab 1: Node I/O Data Structures -->
+        <div class="tab-content active" id="tab-structures">
+          <div class="structure-block">
+            <div class="structure-header">
+              <span class="structure-label label-in">INPUT TO ACTIVE NODE</span>
+              <span class="node-badge-mini" id="input-node-name">START</span>
+            </div>
+            <pre class="code-box" id="input-structure"><code>{\n  "status": "Awaiting execution"\n}</code></pre>
+          </div>
+
+          <div class="structure-block">
+            <div class="structure-header">
+              <span class="structure-label label-out">OUTPUT PRODUCED</span>
+              <span class="node-badge-mini" id="output-node-name">agent</span>
+            </div>
+            <pre class="code-box" id="output-structure"><code>{\n  "status": "No output yet"\n}</code></pre>
+          </div>
+
+          <!-- Tool Call details if present -->
+          <div class="structure-block" id="tool-details-block">
+            <div class="structure-header">
+              <span class="structure-label label-tool">TOOL CALL / EXECUTION PAYLOAD</span>
+            </div>
+            <pre class="code-box" id="tool-payload"><code>{\n  "tool": "None"\n}</code></pre>
+          </div>
+        </div>
+
+        <!-- Tab 2: Full LangGraph AgentState -->
+        <div class="tab-content" id="tab-state">
+          <div class="state-meta-bar">
+            <span>Type: <code>AgentState(TypedDict)</code></span>
+            <span>Messages: <strong id="state-msg-count">0</strong></span>
+          </div>
+          <pre class="code-box state-code" id="state-structure"><code>{\n  "messages": []\n}</code></pre>
+        </div>
+
+        <!-- Tab 3: Execution Timeline -->
+        <div class="tab-content" id="tab-timeline">
+          <div class="timeline-list" id="timeline-list">
+            <div class="timeline-empty">Run a query to populate the execution trace timeline.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Final Result Display -->
+    <section class="card result-card" id="result-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-tag tag-emerald">SYNTHESIZED ANSWER</span>
+          <h2>Final Output synthesized by Agent</h2>
+        </div>
+        <span class="execution-badge" id="exec-summary-badge">0 Steps</span>
+      </div>
+      <div class="result-body" id="final-answer-text">
+        Click "Execute Flow" above to run LangGraph and calculate the answer.
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

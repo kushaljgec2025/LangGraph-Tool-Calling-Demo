@@ -1,0 +1,38 @@
+{
+  "name": "calculate_percentage_discount",
+  "implementation_id": "discount.v1",
+  "author": "team_core",
+  "category": "pricing",
+  "description": "Applies a percentage discount to an amount and returns the discounted price.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "amount": {
+        "type": "number",
+        "description": "The original total or subtotal amount."
+      },
+      "discount_percent": {
+        "type": "number",
+        "description": "Discount percentage (e.g., 10 for 10%)."
+      }
+    },
+    "required": ["amount", "discount_percent"]
+  },
+  "returns": {
+  "type": "object",
+  "properties": {
+    "discounted_amount": {
+      "type": "number",
+      "description": "Amount after discount is subtracted."
+    },
+    "discount_applied": {
+      "type": "number",
+      "description": "The exact dollar amount saved."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "error"]
+    }
+  },
+  "required": ["discounted_amount", "status"]
+}}

@@ -1,0 +1,40 @@
+{
+  "name": "calculate_sales_tax",
+  "implementation_id": "tax.v1",
+  "author": "team_core",
+  "category": "pricing",
+  "description": "Adds sales tax percentage to an amount and returns the total including tax.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "amount": {
+        "type": "number",
+        "description": "The taxable subtotal amount."
+      },
+      "tax_percent": {
+        "type": "number",
+        "description": "Tax percentage (e.g., 8 for 8%)."
+      }
+    },
+    "required": ["amount", "tax_percent"]
+  },
+  "returns": {
+  "type": "object",
+  "properties": {
+    "total_with_tax": {
+      "type": "number",
+      "description": "Final total amount including tax."
+    },
+    "tax_amount": {
+      "type": "number",
+      "description": "The computed tax dollar amount."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "error"]
+    }
+  },
+  "required": ["total_with_tax", "status"]
+}
+  
+}

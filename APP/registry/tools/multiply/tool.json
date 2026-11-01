@@ -1,0 +1,36 @@
+{
+  "name": "multiply",
+  "implementation_id": "multiply.v1",
+  "author": "TA_Team",
+  "category": "arithmetic",
+  "description": "Multiplies two numbers. Use for calculating line-item subtotal (quantity * unit_price).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "number",
+        "description": "The first number, such as item quantity."
+      },
+      "b": {
+        "type": "number",
+        "description": "The second number, such as item unit price."
+      }
+    },
+    "required": ["a", "b"]
+  },
+  "returns": {
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "number",
+      "description": "Calculated product (quantity * unit price)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "error"]
+    }
+  },
+  "required": ["result", "status"]
+}
+  
+}

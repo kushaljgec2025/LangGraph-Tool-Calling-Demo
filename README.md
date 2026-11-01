@@ -23,7 +23,7 @@ This project demonstrates how to dynamically convert standalone Python modules a
 6. [Interactive Web Visualizer](#-interactive-web-visualizer)
 7. [Repository Structure](#-repository-structure)
 8. [Getting Started Locally](#-getting-started-locally)
-9. [Deployment (Vercel & Cloud)](#-deployment-vercel--cloud)
+
 
 ---
 

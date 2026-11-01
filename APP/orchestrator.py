@@ -9,7 +9,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 load_dotenv()
-LOG_FILE = "log.txt"
+# Safe log path for read-only serverless environments
+LOG_FILE = "/tmp/log.txt" if os.environ.get("VERCEL") else "log.txt"
 
 def log_event(event_type: str, payload: dict):
     """Appends an event timestamp and formatted JSON payload to log.txt."""
@@ -18,8 +19,12 @@ def log_event(event_type: str, payload: dict):
         "event": event_type,
         "data": payload
     }
-    with open(LOG_FILE, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry) + "\n")
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        # Ignore write errors on read-only environments
+        pass
 
 class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]

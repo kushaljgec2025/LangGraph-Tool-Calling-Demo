@@ -6,9 +6,15 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 
-# Set working directory to APP folder
+# Set working directory and sys.path to APP folder
 APP_DIR = Path(__file__).parent.resolve()
-os.chdir(APP_DIR)
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+
+try:
+    os.chdir(APP_DIR)
+except Exception:
+    pass
 
 from runner import run_query_pipeline
 from loader import discover_registry_tools
@@ -23,7 +29,8 @@ class handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/tools":
-            tools = discover_registry_tools("registry/tools")
+            tools_dir = APP_DIR / "registry" / "tools"
+            tools = discover_registry_tools(str(tools_dir))
             tools_data = []
             for t in tools:
                 tools_data.append({

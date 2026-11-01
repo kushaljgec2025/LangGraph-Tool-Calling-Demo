@@ -64,7 +64,11 @@ class LangGraphHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                self._send_error_response(str(e), 500)
+                err_str = str(e)
+                code = 500
+                if any(k in err_str for k in ["429", "RESOURCE_EXHAUSTED", "ResourceExhausted"]) or "quota" in err_str.lower() or "too many requests" in err_str.lower():
+                    code = 429
+                self._send_error_response(err_str, code)
             return
 
         self._send_error_response("Not found", 404)
@@ -81,7 +85,7 @@ class LangGraphHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
-        self.wfile.write(json.dumps({"status": "error", "message": message}).encode("utf-8"))
+        self.wfile.write(json.dumps({"status": "error", "code": code, "message": message}).encode("utf-8"))
 
 def start_server(port: int = 8000, auto_open: bool = False):
     server_address = ("", port)

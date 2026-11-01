@@ -38,7 +38,29 @@
         <span class="badge badge-status" id="status-badge">Ready</span>
       </div>
     </header>
-
+    <!-- Important Alert / Error Section (e.g. 429 Too Many Requests) -->
+    <section class="important-messge hidden" id="important-message-section">
+      <div class="important-toast toast-rate-limit" id="important-toast">
+        <div class="toast-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <div class="toast-content">
+          <div class="toast-header-row">
+            <span class="toast-badge" id="toast-code-badge">HTTP 429 | TOO MANY REQUESTS</span>
+            <span class="toast-title" id="toast-title-text">Rate Limit Exceeded | Use the repo </span>
+          </div>
+          <p class="toast-desc" id="toast-desc-text">
+            Too many requests have been sent to the Gemini API. Please wait a moment before sending another query.
+          </p>
+          <div class="toast-raw-details hidden" id="toast-raw-details"></div>
+        </div>
+        <button type="button" class="toast-dismiss-btn" id="toast-dismiss-btn" title="Dismiss Message">✕</button>
+      </div>
+    </section>
     <!-- Query Input & Controls Section -->
     <section class="query-panel">
       <div class="query-input-wrap">

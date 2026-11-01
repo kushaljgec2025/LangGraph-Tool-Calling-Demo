@@ -94,6 +94,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Important Message / Toast Banner Elements
+  const importantMessageSection = document.getElementById("important-message-section");
+  const toastCodeBadge = document.getElementById("toast-code-badge");
+  const toastTitleText = document.getElementById("toast-title-text");
+  const toastDescText = document.getElementById("toast-desc-text");
+  const toastRawDetails = document.getElementById("toast-raw-details");
+  const toastDismissBtn = document.getElementById("toast-dismiss-btn");
+
+  if (toastDismissBtn) {
+    toastDismissBtn.addEventListener("click", () => {
+      hideImportantMessage();
+    });
+  }
+
+  function showImportantMessage({ code, title, desc, raw }) {
+    if (!importantMessageSection) return;
+    if (toastCodeBadge) toastCodeBadge.textContent = code || "HTTP 429 | RATE LIMIT";
+    if (toastTitleText) toastTitleText.textContent = title || "Too Many Requests";
+    if (toastDescText) toastDescText.textContent = desc || "LLM request rate limit reached. Please wait before retrying.";
+    
+    if (toastRawDetails) {
+      if (raw) {
+        toastRawDetails.textContent = raw;
+        toastRawDetails.classList.remove("hidden");
+      } else {
+        toastRawDetails.classList.add("hidden");
+      }
+    }
+
+    importantMessageSection.classList.remove("hidden");
+    importantMessageSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function hideImportantMessage() {
+    if (importantMessageSection) {
+      importantMessageSection.classList.add("hidden");
+    }
+  }
+
   async function handleRunPipeline() {
     const query = queryInput.value.trim();
     if (!query) {
@@ -121,10 +160,48 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ query })
       });
 
-      const data = await response.json();
-      if (data.status === "error") {
-        throw new Error(data.message);
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        data = { status: "error", message: `HTTP ${response.status}: Failed to parse server response` };
       }
+
+      // Check for Rate Limit / Too Many Requests based on HTTP code and payload
+      const isRateLimit = response.status === 429 ||
+        data.code === 429 ||
+        (typeof data.message === "string" && (
+          data.message.includes("429") ||
+          data.message.includes("RESOURCE_EXHAUSTED") ||
+          data.message.includes("ResourceExhausted") ||
+          data.message.toLowerCase().includes("quota") ||
+          data.message.toLowerCase().includes("too many requests")
+        ));
+
+      if (isRateLimit) {
+        showImportantMessage({
+          code: "HTTP 429 | RATE LIMIT",
+          title: "LLM Rate Limit Reached (Too Many Requests)",
+          desc: "The Gemini API returned a rate limit error (Quota / Resource Exhausted). Too many requests have been made to the LLM. Please wait a minute before running another query.",
+          raw: data.message
+        });
+      } else if (!response.ok || data.status === "error") {
+        if (response.status === 401 || response.status === 403 || (typeof data.message === "string" && data.message.toLowerCase().includes("api_key"))) {
+          showImportantMessage({
+            code: `HTTP ${response.status || 401} | AUTH ERROR`,
+            title: "API Key Error",
+            desc: "The configured Gemini API key is missing, invalid, or unauthorized.",
+            raw: data.message
+          });
+        }
+      }
+
+      if (!response.ok || data.status === "error") {
+        throw new Error(data.message || `Server returned error status ${response.status}`);
+      }
+
+      // Hide previous error banner upon success
+      hideImportantMessage();
 
       pipelineSteps = data.steps || [];
       finalAnswerText.textContent = data.final_answer || "No response received";
@@ -152,7 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
       narrativeIcon.textContent = "⚠️";
       narrativeTitle.textContent = "Pipeline Error";
       narrativeDesc.textContent = err.message;
-      alert(`Error running LangGraph: ${err.message}`);
     } finally {
       runBtn.disabled = false;
       runSpinner.classList.add("hidden");

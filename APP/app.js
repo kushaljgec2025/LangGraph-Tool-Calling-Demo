@@ -83,9 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch("/api/tools");
       if (res.ok) {
-        const tools = await res.json();
+        const text = await res.text();
+        const tools = JSON.parse(text);
         const badge = document.getElementById("tools-badge");
-        if (badge) {
+        if (badge && Array.isArray(tools)) {
           badge.innerHTML = `<span class="dot dot-blue"></span> ${tools.length} Tools Loaded`;
         }
       }
@@ -161,10 +162,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       let data = {};
+      const responseText = await response.text();
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
       } catch (parseErr) {
-        data = { status: "error", message: `HTTP ${response.status}: Failed to parse server response` };
+        const titleMatch = responseText.match(/<title>(.*?)<\/title>/i);
+        const snippet = titleMatch ? titleMatch[1] : responseText.replace(/<[^>]+>/g, " ").trim().slice(0, 120);
+        data = { status: "error", message: `HTTP ${response.status}: ${snippet || "The server returned an HTML error page."}` };
       }
 
       // Check for Rate Limit / Too Many Requests based on HTTP code and payload

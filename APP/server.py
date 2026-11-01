@@ -15,7 +15,13 @@ from loader import discover_registry_tools
 
 class LangGraphHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(APP_DIR), **kwargs)
+        try:
+            super().__init__(*args, directory=str(APP_DIR), **kwargs)
+        except TypeError:
+            super().__init__(*args, **kwargs)
+
+# Vercel entrypoint requirement
+handler = LangGraphHandler
 
     def do_GET(self):
         parsed = urlparse(self.path)

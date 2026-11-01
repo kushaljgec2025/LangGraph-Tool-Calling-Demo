@@ -401,17 +401,3 @@ python server.py
 Open **`http://localhost:8000`** in your browser to run queries and inspect the interactive graph execution.
 
 ---
-
-## ☁️ Deployment (Vercel & Cloud)
-
-This project is configured to deploy directly to **Vercel** as a Python Serverless Function:
-
-1. Import your GitHub repository into [Vercel](https://vercel.com).
-2. Set the **Root Directory** to `APP` (or leave at root with `APP/vercel.json`).
-3. Add the **`GEMINI_API_KEY`** under **Environment Variables**.
-4. Deploy! Vercel will install dependencies from `requirements.txt` and route `/api/*` requests to `server.py`.
-
----
-
-## 📜 License
-MIT License. Built for educational and architectural demonstrations of agentic tool-calling workflows with LangGraph and Google Gemini.
